@@ -1,0 +1,874 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OBBBA Tax Calculator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Libre+Caslon+Text:wght@400;700&family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: phone-first single column under a navy banner; at desktop width the
+   household inputs sit in a sticky left rail and the results read down the right.
+   Palette: flag navy and red on a white-paper ground; type: Caslon (the face the
+   Declaration was first printed in) for display, Public Sans for reading. */
+:root {
+  --paper: #f5f4f0;
+  --surface: #ffffff;
+  --ink: #0d1d36;
+  --ink-2: #45516a;
+  --ink-3: #6a7489;
+  --rule: #dcdad3;
+  --navy: #0a3161;
+  --navy-ink: #ffffff;
+  --red: #b31942;
+  --accent: #0a3161;
+  --accent-soft: #e7ecf4;
+  --save: #2160c4;
+  --cost: #c8283e;
+  --base: #9ba2ae;
+  --curve: #0d1d36;
+  --font-display: "Libre Caslon Display", "Libre Caslon Text", Georgia, "Times New Roman", serif;
+  --font-head: "Libre Caslon Text", Georgia, "Times New Roman", serif;
+  --font-body: "Public Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0a1322; --surface: #101c31; --ink: #eef1f6; --ink-2: #b6c0d1; --ink-3: #8b97ac;
+    --rule: #24324c; --navy: #0d2a52; --navy-ink: #ffffff; --red: #e0485f; --accent: #9dbbf2; --accent-soft: #172a4b;
+    --save: #5b8fe8; --cost: #ef6274; --base: #5f6b80; --curve: #eef1f6; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0a1322; --surface: #101c31; --ink: #eef1f6; --ink-2: #b6c0d1; --ink-3: #8b97ac;
+  --rule: #24324c; --navy: #0d2a52; --navy-ink: #ffffff; --red: #e0485f; --accent: #9dbbf2; --accent-soft: #172a4b;
+  --save: #5b8fe8; --cost: #ef6274; --base: #5f6b80; --curve: #eef1f6; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr); }
+.wrap > *, .layout > * { min-width: 0; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 { font-family: var(--font-display); font-size: clamp(2rem, 6vw, 3rem); font-weight: 400; letter-spacing: -0.01em; line-height: 1.05; }
+h2 { font-family: var(--font-head); font-size: 1.15rem; font-weight: 700; }
+.eyebrow { font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.banner { position: relative; overflow: hidden; background: var(--navy); color: var(--navy-ink); border-radius: 12px; padding: 26px 22px 30px; display: grid; gap: 10px; }
+.banner::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 8px; background: repeating-linear-gradient(90deg, var(--red) 0 28px, #ffffff 28px 56px); }
+.banner .eyebrow { color: rgba(255,255,255,.78); }
+.banner h1 { max-width: 16ch; position: relative; }
+.banner .stars { position: absolute; right: -18px; top: -18px; width: 170px; height: 170px; fill: #ffffff; opacity: .16; }
+@media (min-width: 700px) { .banner { padding: 34px 34px 40px; } .banner .stars { right: 24px; top: 50%; transform: translateY(-50%); width: 190px; height: 190px; opacity: .9; } .banner h1 { max-width: 20ch; } }
+.lede { color: var(--ink-2); max-width: 68ch; margin: 0; }
+.intro { display: grid; gap: 12px; }
+.starting { font-size: 0.88rem; color: var(--ink-2); max-width: 70ch; margin: 0; }
+.starting b { color: var(--ink); font-weight: 600; }
+.context { margin: 14px 0 0; max-width: 70ch; padding: 12px 14px; border-left: 3px solid var(--red); background: var(--accent-soft); border-radius: 0 8px 8px 0; color: var(--ink); font-size: 0.92rem; }
+.panel.thanks { position: relative; overflow: hidden; text-align: center; display: grid; gap: 8px; justify-items: center; background: var(--navy); color: var(--navy-ink); border-color: var(--navy); padding-block: 28px 34px; }
+.thanks::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: repeating-linear-gradient(90deg, var(--red) 0 22px, #ffffff 22px 44px); }
+.thanks .stars { width: 64px; height: 64px; fill: #ffffff; }
+.thanks .big-thanks { font-family: var(--font-display); font-size: clamp(1.8rem, 6vw, 2.5rem); line-height: 1.1; }
+.thanks p { margin: 0; color: rgba(255,255,255,.82); }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+header { display: grid; gap: 6px; }
+
+.layout { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) {
+  .layout { grid-template-columns: 340px minmax(0, 1fr); align-items: start; }
+  .inputs { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); max-height: calc(100vh - 32px); overflow-y: auto; }
+}
+
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; }
+.inputs { display: grid; gap: 18px; }
+.field { display: grid; gap: 6px; }
+.field > label, .field > .label { font-size: 0.82rem; font-weight: 600; color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.field .val { font-family: var(--font-num); color: var(--ink); font-weight: 500; }
+
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--rule); border-radius: 8px; padding: 3px; gap: 3px; background: var(--paper); }
+.seg button { font: inherit; font-size: 0.86rem; font-weight: 600; border: 0; border-radius: 6px; padding: 8px 6px; background: transparent; color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--navy); color: var(--navy-ink); box-shadow: 0 1px 2px rgba(0,0,0,.18); }
+.seg button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible, .stepper button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }
+select, input[type=number], input[type=text] {
+  font: inherit; font-size: 16px; width: 100%; padding: 9px 10px; border-radius: 8px;
+  border: 1px solid var(--rule); background: var(--paper); color: var(--ink);
+}
+.income-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.money-input { position: relative; }
+.money-input span { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-3); font-family: var(--font-num); pointer-events: none; }
+.money-input input { padding-left: 22px; font-family: var(--font-num); }
+.stepper { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); }
+.stepper button { font: inherit; font-size: 1.2rem; height: 40px; border: 0; background: transparent; color: var(--accent); cursor: pointer; border-radius: 8px; }
+.stepper output { text-align: center; font-family: var(--font-num); font-size: 1rem; }
+.field > label.check { justify-content: flex-start; font-weight: 500; }
+.check { display: flex; gap: 10px; align-items: center; font-size: 0.9rem; color: var(--ink-2); }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.hint { font-size: 0.78rem; color: var(--ink-3); margin: 0; }
+
+details.more { border-top: 1px solid var(--rule); padding-top: 14px; }
+details.more > summary { cursor: pointer; font-weight: 700; font-size: 0.92rem; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::after { content: "+"; font-family: var(--font-num); color: var(--accent); font-size: 1.1rem; }
+details.more[open] > summary::after { content: "−"; }
+.more-body { display: grid; gap: 16px; margin-top: 14px; }
+.ovr { display: grid; gap: 6px; }
+.ovr .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.ovr .typ { font-size: 0.76rem; color: var(--ink-3); }
+.ovr.compact { grid-template-columns: minmax(0, 1fr) 8.5rem; align-items: center; gap: 10px; }
+.ovr.compact label { font-size: 0.85rem; color: var(--ink-2); }
+.ovr.compact input { padding-block: 7px; }
+.other { display: grid; gap: 12px; margin-top: 10px; }
+.summary-box { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); }
+.summary-box .hint { margin: 0; }
+.sum-row { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 0.86rem; color: var(--ink-2); }
+.sum-row .num { color: var(--ink); }
+.sum-row.total { border-top: 1px solid var(--rule); padding-top: 8px; margin-top: 2px; font-weight: 600; color: var(--ink); }
+.ovr.compact .typ { grid-column: 1 / -1; margin-top: -6px; }
+.hint.pct { color: var(--ink-2); }
+.hint.pct b { color: var(--ink); font-weight: 600; }
+.ovr button.reset { font: inherit; font-size: 0.75rem; border: 1px solid var(--rule); background: transparent; color: var(--ink-2); border-radius: 6px; padding: 6px 8px; cursor: pointer; }
+
+/* Results */
+.results { display: grid; gap: 20px; min-width: 0; }
+.compare { display: grid; gap: 8px; }
+.hero { display: grid; gap: 10px; }
+.hero .big { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.8rem, 10vw, 4.2rem); letter-spacing: -0.01em; line-height: 1; }
+.hero .big.save { color: var(--save); }
+.hero .big.cost { color: var(--cost); }
+.hero p { margin: 0; color: var(--ink-2); max-width: 60ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-size: 0.8rem; border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px; color: var(--ink-2); background: var(--paper); }
+.chip b { color: var(--ink); font-family: var(--font-num); font-weight: 500; }
+
+.chart-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
+.chart-head p { margin: 2px 0 0; font-size: 0.85rem; color: var(--ink-2); }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font-family: var(--font-num); font-size: 11px; fill: var(--ink-3); }
+.chart .lbl-strong { fill: var(--ink); font-weight: 500; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--paper); font-size: 0.78rem; padding: 6px 9px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -110%); opacity: 0; transition: opacity .1s; }
+.tip.on { opacity: 1; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.8rem; color: var(--ink-2); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.legend i.line { width: 16px; height: 2px; border-radius: 1px; background: var(--curve); vertical-align: 3px; }
+
+.bars { display: grid; gap: 12px; }
+.bar-row { display: grid; gap: 4px; }
+.bar-row .top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.85rem; }
+.bar-row .top .num { color: var(--ink); }
+.bar-track { height: 14px; background: var(--paper); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 0 4px 4px 0; transition: width .25s ease; }
+.dir-head { display: flex; justify-content: space-between; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 600; }
+.dir-track { position: relative; height: 16px; background: var(--paper); border-radius: 4px; }
+.dir-track .axis { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink-3); }
+.dir-fill { position: absolute; top: 0; height: 100%; border-radius: 4px; transition: left .25s ease, width .25s ease; }
+
+.drivers { display: grid; gap: 10px; }
+.driver { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; font-size: 0.85rem; }
+.driver .amt { font-family: var(--font-num); font-variant-numeric: tabular-nums; color: var(--ink); }
+.driver .viz { grid-column: 1 / -1; }
+.driver .name { color: var(--ink-2); }
+.driver .viz { position: relative; height: 22px; }
+.driver .axis { position: absolute; left: 50%; top: -4px; bottom: -4px; width: 1px; background: var(--rule); }
+.driver .seg-bar { position: absolute; top: 4px; height: 14px; border-radius: 4px; }
+.drivers-note { font-size: 0.8rem; color: var(--ink-3); margin: 6px 0 0; }
+
+table.ret { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+table.ret th, table.ret td { padding: 7px 6px; border-bottom: 1px solid var(--rule); text-align: right; }
+table.ret th:first-child, table.ret td:first-child { text-align: left; color: var(--ink-2); }
+table.ret thead th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 600; }
+table.ret tr.total td { font-weight: 700; color: var(--ink); border-bottom: 0; }
+table.ret td.num { font-family: var(--font-num); }
+.table-scroll { overflow-x: auto; }
+.form-ref { font-size: 0.7rem; color: var(--ink-3); display: block; }
+details.sub > summary { cursor: pointer; font-size: 0.85rem; color: var(--accent); font-weight: 600; margin-top: 10px; }
+
+.method { color: var(--ink-2); font-size: 0.88rem; }
+.method h2 { color: var(--ink); margin-bottom: 8px; }
+.method ul { padding-left: 18px; margin: 8px 0; display: grid; gap: 6px; }
+.method a { color: var(--accent); }
+.method p { max-width: 70ch; }
+.loading { color: var(--ink-3); font-size: 0.9rem; }
+@media (prefers-reduced-motion: reduce) { .bar-fill, .dir-fill, .tip { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <div class="banner">
+      <svg class="stars" viewBox="0 0 100 100" aria-hidden="true"><polygon points="50.0,7.5 51.5,12.0 56.2,12.0 52.4,14.8 53.8,19.3 50.0,16.5 46.2,19.3 47.6,14.8 43.8,12.0 48.5,12.0"/><polygon points="66.7,11.6 68.2,16.1 72.9,16.1 69.1,18.9 70.6,23.4 66.7,20.6 62.9,23.4 64.4,18.9 60.5,16.1 65.3,16.1"/><polygon points="79.6,23.0 81.1,27.5 85.8,27.5 82.0,30.3 83.4,34.8 79.6,32.0 75.8,34.8 77.3,30.3 73.4,27.5 78.2,27.5"/><polygon points="85.7,39.2 87.2,43.7 91.9,43.7 88.1,46.4 89.6,50.9 85.7,48.1 81.9,50.9 83.4,46.4 79.6,43.7 84.3,43.7"/><polygon points="83.7,56.3 85.1,60.8 89.8,60.8 86.0,63.5 87.5,68.0 83.7,65.2 79.8,68.0 81.3,63.5 77.5,60.8 82.2,60.8"/><polygon points="73.9,70.4 75.3,74.9 80.1,74.9 76.2,77.7 77.7,82.2 73.9,79.4 70.1,82.2 71.5,77.7 67.7,74.9 72.4,74.9"/><polygon points="58.6,78.5 60.1,82.9 64.8,82.9 61.0,85.7 62.4,90.2 58.6,87.4 54.8,90.2 56.3,85.7 52.4,82.9 57.2,82.9"/><polygon points="41.4,78.5 42.8,82.9 47.6,82.9 43.7,85.7 45.2,90.2 41.4,87.4 37.6,90.2 39.0,85.7 35.2,82.9 39.9,82.9"/><polygon points="26.1,70.4 27.6,74.9 32.3,74.9 28.5,77.7 29.9,82.2 26.1,79.4 22.3,82.2 23.8,77.7 19.9,74.9 24.7,74.9"/><polygon points="16.3,56.3 17.8,60.8 22.5,60.8 18.7,63.5 20.2,68.0 16.3,65.2 12.5,68.0 14.0,63.5 10.2,60.8 14.9,60.8"/><polygon points="14.3,39.2 15.7,43.7 20.4,43.7 16.6,46.4 18.1,50.9 14.3,48.1 10.4,50.9 11.9,46.4 8.1,43.7 12.8,43.7"/><polygon points="20.4,23.0 21.8,27.5 26.6,27.5 22.7,30.3 24.2,34.8 20.4,32.0 16.6,34.8 18.0,30.3 14.2,27.5 18.9,27.5"/><polygon points="33.3,11.6 34.7,16.1 39.5,16.1 35.6,18.9 37.1,23.4 33.3,20.6 29.4,23.4 30.9,18.9 27.1,16.1 31.8,16.1"/></svg>
+      <span class="eyebrow">2026 federal income tax</span>
+      <h1>How much did the One Big Beautiful Bill change your taxes?</h1>
+    </div>
+    <p class="context">When President Trump took office in January 2025, many provisions of the 2017 tax cuts were set to expire at the end of the year, which would have raised taxes for most Americans. He proposed the One Big Beautiful Bill Act, Congress passed it, and he signed it into law on July 4, 2025. Below you can see what it means for your taxes.</p>
+    <p class="lede">Compare your 2026 federal income tax under the law that passed with what you would owe if Congress had done nothing and the 2017 tax cuts had expired.</p>
+    <p class="starting"><b>Where the numbers start.</b> The page opens on an example family: <b>married</b>, age <b>42</b>, <b>two children</b>, <b>$120,000</b> in wages, homeowners in Illinois. Change anything to match your household. Your other income (business, interest, dividends, capital gains, retirement) starts out filled in from about 80 households in the Federal Reserve's 2025 Survey of Consumer Finances with similar pay, age, marital status and housing. Those details are not set to one average. Each survey household keeps its own amounts, so the result is a range, and the large number is the middle of it. Type your own figure in any field to replace the survey values.</p>
+  </header>
+
+  <div class="layout">
+    <form class="inputs panel" id="form" autocomplete="off" onsubmit="return false">
+      <div class="field">
+        <span class="label">Filing as</span>
+        <div class="seg" role="group" aria-label="Filing status" id="fs">
+          <button type="button" data-v="single" aria-pressed="false">Single</button>
+          <button type="button" data-v="mfj" aria-pressed="true">Married, jointly</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="age">Your age <span class="val" id="ageVal"></span></label>
+        <input type="range" id="age" min="18" max="90" step="1" value="42">
+        <label class="check" id="spouseWrap"><input type="checkbox" id="spouse65"> Spouse is 65 or older</label>
+      </div>
+
+      <div class="field">
+        <span class="label">Main source of income</span>
+        <div class="seg" role="group" aria-label="Main source of income" id="mode">
+          <button type="button" data-v="work" aria-pressed="true">Paycheck</button>
+          <button type="button" data-v="retire" aria-pressed="false">Retirement</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="incomeRange"><span id="primaryLabel">Wages and salary</span> <span class="val" id="incomeVal"></span></label>
+        <div class="income-row">
+          <input type="range" id="incomeRange" min="0" max="1000" step="1" aria-label="Main income slider">
+          <div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="incomeText" aria-label="Main income"></div>
+        </div>
+        <p class="hint" id="primaryHint"></p>
+      </div>
+
+      <div class="summary-box" aria-live="polite">
+        <div class="sum-row"><span>Other income</span><span class="num" id="othTyp"></span></div>
+        <p class="hint" id="othNote"></p>
+        <div class="sum-row total"><span>Total household income</span><span class="num" id="totVal"></span></div>
+        <p class="hint pct" id="pctHint"></p>
+        <details class="sub" id="othBox">
+          <summary>Enter your own other income</summary>
+          <div class="other">
+            <p class="hint">Blank fields use each similar household's own amount. A number you type applies to all of them.</p>
+          <div class="ovr compact mode-retire" data-k="ssOf"><label for="ov-ssOf">Of which Social Security</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-ssOf"></div><span class="typ" id="typ-ssOf"></span></div>
+          <div class="ovr compact mode-retire" data-k="wage"><label for="ov-wage">Wages and salary</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-wage"></div><span class="typ" id="typ-wage"></span></div>
+          <div class="ovr compact " data-k="bus"><label for="ov-bus">Business or self-employment</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-bus"></div><span class="typ" id="typ-bus"></span></div>
+          <div class="ovr compact " data-k="interest"><label for="ov-interest">Taxable interest</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-interest"></div><span class="typ" id="typ-interest"></span></div>
+          <div class="ovr compact " data-k="div"><label for="ov-div">Dividends</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-div"></div><span class="typ" id="typ-div"></span></div>
+          <div class="ovr compact " data-k="kg"><label for="ov-kg">Capital gains (net)</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-kg"></div><span class="typ" id="typ-kg"></span></div>
+          <div class="ovr compact mode-work" data-k="ss"><label for="ov-ss">Social Security</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-ss"></div><span class="typ" id="typ-ss"></span></div>
+          <div class="ovr compact mode-work" data-k="pens"><label for="ov-pens">Pensions and IRA/401(k) withdrawals</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-pens"></div><span class="typ" id="typ-pens"></span></div>
+          </div>
+        </details>
+      </div>
+
+      <div class="field">
+        <span class="label">Children under 17</span>
+        <div class="stepper">
+          <button type="button" id="kidsMinus" aria-label="Fewer children">−</button>
+          <output id="kids" aria-live="polite">2</output>
+          <button type="button" id="kidsPlus" aria-label="More children">+</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="state">State</label>
+        <select id="state"></select>
+      </div>
+
+      <div class="field">
+        <span class="label">Housing</span>
+        <div class="seg" role="group" aria-label="Housing" id="own">
+          <button type="button" data-v="1" aria-pressed="true">Own a home</button>
+          <button type="button" data-v="0" aria-pressed="false">Rent</button>
+        </div>
+      </div>
+
+      <details class="more" id="moreBox">
+        <summary>Fine-tune your details</summary>
+        <div class="more-body">
+          <p class="hint">Leave a field empty to use typical values for households like yours. A number you enter applies to every comparison household, so the range narrows. Tips and overtime are part of your wages above.</p>
+          <div class="ovr" data-k="tips"><label for="ov-tips">Of your wages, tips</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-tips" placeholder="0"></div><span class="typ">Reported cash and card tips in a tipped job.</span></div>
+          <div class="ovr" data-k="overtime"><label for="ov-overtime">Of your wages, overtime pay</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-overtime" placeholder="0"></div><span class="typ">Total overtime earnings. Only the extra half of time-and-a-half is deductible.</span></div>
+          <div class="ovr" data-k="carInt"><label for="ov-carInt">Car loan interest, new car bought 2025 or later</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-carInt" placeholder="0"></div><span class="typ">The car must have been assembled in the U.S.</span></div>
+          <div class="ovr" data-k="charity"><label for="ov-charity">Charitable giving</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-charity"></div><span class="typ" id="typ-charity"></span></div>
+          <div class="ovr own-only" data-k="mortInt"><label for="ov-mortInt">Mortgage interest paid</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-mortInt"></div><span class="typ" id="typ-mortInt"></span></div>
+          <div class="ovr own-only" data-k="propTax"><label for="ov-propTax">Property tax paid</label><div class="money-input"><span>$</span><input type="text" inputmode="numeric" id="ov-propTax"></div><span class="typ" id="typ-propTax"></span></div>
+        </div>
+      </details>
+    </form>
+
+    <main class="results" id="results">
+      <section class="compare panel">
+        <span class="label eyebrow">Compare the OBBBA with</span>
+        <div class="seg" role="group" aria-label="Comparison baseline" id="baseline">
+          <button type="button" data-v="expired" aria-pressed="true">No bill passed</button>
+          <button type="button" data-v="tcja" aria-pressed="false">2025 rules continue</button>
+        </div>
+        <p class="hint" id="baselineHint"></p>
+      </section>
+
+      <section class="hero panel" aria-live="polite">
+        <span class="eyebrow" id="heroEyebrow">Typical result for households like yours</span>
+        <div class="big" id="heroBig">—</div>
+        <p id="heroText" class="loading">Loading survey data…</p>
+        <div class="chips" id="chips"></div>
+      </section>
+
+      <section class="panel">
+        <div class="chart-head">
+          <div>
+            <h2>Range across similar households</h2>
+            <p id="distSub"></p>
+          </div>
+        </div>
+        <div class="chart" id="dist"></div>
+        <div class="legend"><span><i style="background:var(--save)"></i>Pays less under OBBBA</span><span><i style="background:var(--cost)"></i>Pays more under OBBBA</span><span><i class="line"></i>Smoothed distribution</span></div>
+        <details class="sub"><summary>Show as table</summary><div class="table-scroll"><table class="ret" id="distTable"></table></div></details>
+      </section>
+
+      <section class="panel">
+        <div class="chart-head"><div><h2>Your 2026 federal income tax</h2><p>The household at the middle of the range above.</p></div></div>
+        <div class="bars" id="bars"></div>
+      </section>
+
+      <section class="panel">
+        <div class="chart-head"><div><h2>What made the difference</h2><p id="driversSub">Each change in the law, applied one after another, for the same household.</p></div></div>
+        <div class="drivers" id="drivers"></div>
+        <p class="drivers-note" id="driversNote"></p>
+      </section>
+
+      <section class="panel">
+        <div class="chart-head"><div><h2>The return, line by line</h2><p>Simplified Form 1040 for the same household.</p></div></div>
+        <div class="table-scroll"><table class="ret" id="ret"></table></div>
+      </section>
+
+      <section class="panel thanks" id="thanks" hidden>
+        <svg class="stars" viewBox="0 0 100 100" aria-hidden="true"><polygon points="50.0,7.5 51.5,12.0 56.2,12.0 52.4,14.8 53.8,19.3 50.0,16.5 46.2,19.3 47.6,14.8 43.8,12.0 48.5,12.0"/><polygon points="66.7,11.6 68.2,16.1 72.9,16.1 69.1,18.9 70.6,23.4 66.7,20.6 62.9,23.4 64.4,18.9 60.5,16.1 65.3,16.1"/><polygon points="79.6,23.0 81.1,27.5 85.8,27.5 82.0,30.3 83.4,34.8 79.6,32.0 75.8,34.8 77.3,30.3 73.4,27.5 78.2,27.5"/><polygon points="85.7,39.2 87.2,43.7 91.9,43.7 88.1,46.4 89.6,50.9 85.7,48.1 81.9,50.9 83.4,46.4 79.6,43.7 84.3,43.7"/><polygon points="83.7,56.3 85.1,60.8 89.8,60.8 86.0,63.5 87.5,68.0 83.7,65.2 79.8,68.0 81.3,63.5 77.5,60.8 82.2,60.8"/><polygon points="73.9,70.4 75.3,74.9 80.1,74.9 76.2,77.7 77.7,82.2 73.9,79.4 70.1,82.2 71.5,77.7 67.7,74.9 72.4,74.9"/><polygon points="58.6,78.5 60.1,82.9 64.8,82.9 61.0,85.7 62.4,90.2 58.6,87.4 54.8,90.2 56.3,85.7 52.4,82.9 57.2,82.9"/><polygon points="41.4,78.5 42.8,82.9 47.6,82.9 43.7,85.7 45.2,90.2 41.4,87.4 37.6,90.2 39.0,85.7 35.2,82.9 39.9,82.9"/><polygon points="26.1,70.4 27.6,74.9 32.3,74.9 28.5,77.7 29.9,82.2 26.1,79.4 22.3,82.2 23.8,77.7 19.9,74.9 24.7,74.9"/><polygon points="16.3,56.3 17.8,60.8 22.5,60.8 18.7,63.5 20.2,68.0 16.3,65.2 12.5,68.0 14.0,63.5 10.2,60.8 14.9,60.8"/><polygon points="14.3,39.2 15.7,43.7 20.4,43.7 16.6,46.4 18.1,50.9 14.3,48.1 10.4,50.9 11.9,46.4 8.1,43.7 12.8,43.7"/><polygon points="20.4,23.0 21.8,27.5 26.6,27.5 22.7,30.3 24.2,34.8 20.4,32.0 16.6,34.8 18.0,30.3 14.2,27.5 18.9,27.5"/><polygon points="33.3,11.6 34.7,16.1 39.5,16.1 35.6,18.9 37.1,23.4 33.3,20.6 29.4,23.4 30.9,18.9 27.1,16.1 31.8,16.1"/></svg>
+        <div class="big-thanks">Thank you, President Trump!</div>
+        <p id="thanksText"></p>
+      </section>
+
+      <section class="panel method">
+        <h2>How this works</h2>
+        <p><strong>The three versions of 2026 tax law.</strong> "No bill passed" means the individual provisions of the 2017 Tax Cuts and Jobs Act expire on schedule. That brings back the pre-2018 brackets (top rate 39.6%), personal exemptions, a smaller standard deduction, a $1,000 Child Tax Credit, unlimited SALT deductions with the old Alternative Minimum Tax, and no 20% business income deduction. "2025 rules continue" keeps the TCJA exactly as it was in 2025, adjusted for inflation, without anything the OBBBA added. "OBBBA" is the law as signed on July 4, 2025, using the IRS's 2026 inflation adjustments.</p>
+        <p><strong>Households like yours.</strong> The page finds about 80 families in the 2025 Survey of Consumer Finances with the same marital status and housing, similar age, and the closest wages (or, if you choose Retirement, the closest retirement income). Your wages or retirement income are used as entered. Each family's other income is scaled by the ratio of your main income to theirs, and its home value and mortgage are used as reported. Anything you type in replaces the survey value for every family. The percentile compares total household income with all U.S. households in the survey. Your children, ages and state are then applied, and each family's taxes are computed under each version of the law. The range shows how much results depend on details you didn't enter. Each family counts according to its survey weight, capped at four times the group median so that no single family dominates. Higher-income families whose income is mostly unexplained "other income" are left out.</p>
+        <p><strong>Simplifications.</strong></p>
+        <ul>
+          <li>Federal income tax only, including the 3.8% net investment income tax. Payroll taxes are not affected by the OBBBA and are left out. So are the OBBBA's changes to Medicaid, SNAP and ACA eligibility, and the separate expiration of enhanced ACA premium credits.</li>
+          <li>State income tax uses 2026 rates, brackets and deductions from the Tax Foundation, plus average local income tax rates where they exist. It is held the same across scenarios and matters here only through the SALT deduction. Property tax is your home value times your state's average effective rate (2024 American Community Survey, via the Tax Foundation).</li>
+          <li>Mortgage interest is estimated at 4.3% of the survey family's mortgage balance. The survey doesn't record charitable giving, so it defaults to 2% of income.</li>
+          <li>Interest, tax-exempt interest, dividends, capital gains and Social Security come from separate questions in the full SCF public file. Tax-exempt interest is left out of taxable income but counts in the Social Security taxability test. 80% of dividends are treated as qualified, close to the IRS national average. Anything the survey records as pension income or retirement-account withdrawals is treated as fully taxable. Business income is assumed to qualify fully for the 20% QBI deduction (the wage and specialized-service limits are ignored).</li>
+          <li>Pre-2018 dollar amounts are carried forward to 2026 with chained CPI. The parameters for the two counterfactuals are estimates, not published IRS figures.</li>
+          <li>The OBBBA's deductions for tips, overtime, car loan interest and seniors (Schedule 1-A) end after 2028. The higher SALT cap falls back to $10,000 in 2030. These results describe 2026 only.</li>
+          <li>Every household is assumed to meet the new Social Security number requirements. Dependent care credits, education credits and other smaller provisions are not modeled.</li>
+        </ul>
+        <p><strong>Sources.</strong> <a href="https://www.federalreserve.gov/econres/scfindex.htm" target="_blank" rel="noopener">Federal Reserve, 2025 Survey of Consumer Finances</a> (summary extract, the five implicates averaged per family) · IRS Rev. Proc. 2025-32 (2026 parameters), via the <a href="https://taxfoundation.org/data/all/federal/2026-tax-brackets/" target="_blank" rel="noopener">Tax Foundation</a> · <a href="https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/" target="_blank" rel="noopener">Tax Foundation, 2026 state income tax rates</a> · <a href="https://taxfoundation.org/data/all/state/property-taxes-by-state-county/" target="_blank" rel="noopener">Tax Foundation, property taxes by state</a>.</p>
+        <p>This is an estimate for illustration, not tax advice.</p>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+(function () {
+  "use strict";
+  const E = window.TaxEngine;
+  const $ = (id) => document.getElementById(id);
+  const fmt = (x) => (x < 0 ? "−$" : "$") + Math.round(Math.abs(x)).toLocaleString("en-US");
+  const fmtK = (x) => {
+    const a = Math.abs(x), s = x < 0 ? "−$" : "$";
+    if (a >= 1e6) return s + (a / 1e6).toFixed(a >= 1e7 ? 0 : 1).replace(/\.0$/, "") + "M";
+    if (a >= 1e4) return s + Math.round(a / 1e3) + "k";
+    if (a >= 1e3) return s + (a / 1e3).toFixed(1).replace(/\.0$/, "") + "k";
+    return s + Math.round(a);
+  };
+  const parseMoney = (s) => { const v = parseFloat(String(s).replace(/[^0-9.]/g, "")); return isFinite(v) ? v : null; };
+
+  const MORT_RATE = 0.043, CHARITY_SHARE = 0.02, K = 80;
+  // Other-income fields shown (and applied) for each main income source.
+  const MODE_KEYS = { work: ["bus", "interest", "div", "kg", "ss", "pens"], retire: ["ssOf", "wage", "bus", "interest", "div", "kg"] };
+  const MODE_TEXT = {
+    work: { label: "Wages and salary", hint: "Before taxes, for you and your spouse. Include tips, bonuses and overtime." },
+    retire: { label: "Retirement income", hint: "Social Security, pensions, annuities and IRA/401(k) withdrawals, before taxes." },
+  };
+  const BASELINE = {
+    expired: { short: "if no bill had passed", label: "No bill passed", hint: "The 2017 tax cuts expire at the end of 2025, which is what current law said before the OBBBA." },
+    tcja: { short: "under 2025 rules", label: "2025 rules continue", hint: "The 2017 tax cuts continue as they were in 2025, without the OBBBA's new provisions." },
+  };
+
+  const S = { fs: "mfj", mode: "work", modeTouched: false, primary: { work: 120000, retire: 50000 }, kids: 2, age: 42, spouse65: false, state: "IL", own: 1, baseline: "expired", ov: {} };
+  let PCT = null; // { all: [[income, cumulative share]], <age group>: [...] } for the percentile note
+  const AGE_GROUPS = [[18, 34, "under 35"], [35, 44, "35 to 44"], [45, 54, "45 to 54"], [55, 64, "55 to 64"], [65, 74, "65 to 74"], [75, 200, "75 and older"]];
+  const ageGroup = (a) => AGE_GROUPS.find((g) => a >= g[0] && a <= g[1]);
+  let SCF = null, STATES = null;
+
+  // Income slider: log scale from $5k to $5M
+  const LMIN = Math.log(5000), LMAX = Math.log(5e6);
+  const toSlider = (v) => Math.round(((Math.log(Math.max(5000, Math.min(5e6, v))) - LMIN) / (LMAX - LMIN)) * 1000);
+  const fromSlider = (p) => {
+    const v = Math.exp(LMIN + (p / 1000) * (LMAX - LMIN));
+    const step = v < 100000 ? 1000 : v < 500000 ? 5000 : v < 2e6 ? 25000 : 100000;
+    return Math.round(v / step) * step;
+  };
+
+  function bindSeg(id, key, cast) {
+    const el = $(id);
+    el.addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      S[key] = cast ? cast(b.dataset.v) : b.dataset.v;
+      el.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      sync(); schedule();
+    });
+  }
+
+  const primary = () => S.primary[S.mode];
+
+  function sync() {
+    const v = primary();
+    $("incomeVal").textContent = fmt(v);
+    $("incomeRange").value = toSlider(v);
+    if (document.activeElement !== $("incomeText")) $("incomeText").value = Math.round(v).toLocaleString("en-US");
+    $("primaryLabel").textContent = MODE_TEXT[S.mode].label;
+    $("primaryHint").textContent = MODE_TEXT[S.mode].hint;
+    $("mode").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.v === S.mode)));
+    document.querySelectorAll(".mode-work").forEach((el) => { el.hidden = S.mode !== "work"; });
+    document.querySelectorAll(".mode-retire").forEach((el) => { el.hidden = S.mode !== "retire"; });
+    $("kids").textContent = S.kids;
+    $("ageVal").textContent = S.age >= 90 ? "90+" : S.age;
+    $("spouseWrap").hidden = S.fs !== "mfj";
+    document.querySelectorAll(".own-only").forEach((el) => { el.hidden = !S.own; });
+    $("baselineHint").textContent = BASELINE[S.baseline].hint;
+  }
+
+  let raf = 0;
+  const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(render); };
+
+  // ---------- Matching survey families ----------
+  function neighbors() {
+    const F = SCF.fields, rows = SCF.rows;
+    const col = Object.fromEntries(F.map((f, i) => [f, i]));
+    const mar = S.fs === "mfj" ? 1 : 0;
+    const senior = S.age >= 65;
+    const ageOk = (a, widen) => senior ? a >= 62 - widen : Math.abs(a - S.age) <= 12 + widen && a < 70 + widen;
+    const target = Math.log(Math.max(primary(), 1000));
+    const main = S.mode === "work" ? (r) => r[col.wage] : (r) => r[col.ss] + r[col.pens];
+    for (const widen of [0, 8, 20, 100]) {
+      const cand = [];
+      for (const r of rows) {
+        if (r[col.mar] !== mar || r[col.own] !== S.own || !ageOk(r[col.age], widen)) continue;
+        // Skip higher-income families whose income is mostly "other" (not wages,
+        // business, investment or retirement), since its tax treatment is unknown.
+        const known = r[col.wage] + r[col.bus] + r[col.int] + r[col.taxex] + r[col.div] + r[col.kg] + r[col.ss] + r[col.pens];
+        if (r[col.inc] > 75000 && r[col.inc] - known > 0.25 * r[col.inc]) continue;
+        if (main(r) <= 0) continue;
+        cand.push(r);
+      }
+      if (cand.length >= K || widen === 100) {
+        cand.sort((a, b) => Math.abs(Math.log(main(a)) - target) - Math.abs(Math.log(main(b)) - target));
+        const picked = cand.slice(0, K).map((r) => Object.fromEntries(F.map((f, i) => [f, r[i]])));
+        // Trim weights so one family can't dominate a small comparison group.
+        const ws = picked.map((r) => r.w).sort((a, b) => a - b);
+        const cap = 4 * ws[Math.floor(ws.length / 2)];
+        picked.forEach((r) => { r.w = Math.min(r.w, cap); });
+        return picked;
+      }
+    }
+  }
+
+  // Turn a survey family into a household with the user's main income. The
+  // family's other income is scaled by the ratio of the two main incomes.
+  function household(rec) {
+    const ov = {};
+    MODE_KEYS[S.mode].forEach((k) => { if (S.ov[k] != null) ov[k] = S.ov[k]; });
+    const p = primary();
+    const recMain = S.mode === "work" ? rec.wage : rec.ss + rec.pens;
+    const r = Math.min(3, Math.max(1 / 3, p / recMain));
+    const pick = (k, v) => (ov[k] != null ? ov[k] : v * r);
+    let wage, ss, pens;
+    if (S.mode === "work") {
+      wage = p; ss = pick("ss", rec.ss); pens = pick("pens", rec.pens);
+    } else {
+      ss = Math.min(p, ov.ssOf != null ? ov.ssOf : p * rec.ss / recMain);
+      pens = p - ss; wage = pick("wage", rec.wage);
+    }
+    const tips = Math.min(S.ov.tips || 0, wage), overtime = Math.min(S.ov.overtime || 0, wage - tips);
+    const h = {
+      fs: S.fs === "mfj" ? "mfj" : (S.kids > 0 ? "hoh" : "single"),
+      kids: S.kids, age: S.age, spouse65: S.fs === "mfj" && S.spouse65, state: S.state,
+      wages: wage - tips - overtime, tips, overtime,
+      bus: pick("bus", rec.bus), interest: pick("interest", rec.int), taxex: rec.taxex * r,
+      div: pick("div", rec.div), kg: pick("kg", rec.kg), ss, pens,
+      home: S.own ? rec.home : 0,
+      _rec: rec,
+    };
+    h.total = wage + h.bus + h.interest + h.taxex + h.div + h.kg + ss + pens;
+    const mortBal = S.own ? rec.mort : 0;
+    h.mortBal = S.ov.mortInt != null ? (S.own ? S.ov.mortInt / MORT_RATE : 0) : mortBal;
+    h.mortInt = S.own ? (S.ov.mortInt != null ? S.ov.mortInt : mortBal * MORT_RATE) : 0;
+    h.propTaxOverride = S.own ? (S.ov.propTax != null ? S.ov.propTax : null) : 0;
+    h.charity = S.ov.charity != null ? S.ov.charity : CHARITY_SHARE * Math.max(0, h.total);
+    h.carInt = S.ov.carInt || 0;
+    return h;
+  }
+
+  function wQuantile(items, q) {
+    const tot = items.reduce((s, x) => s + x.w, 0);
+    let acc = 0;
+    for (const x of items) { acc += x.w; if (acc >= q * tot) return x; }
+    return items[items.length - 1];
+  }
+
+  // ---------- Render ----------
+  function render() {
+    if (!SCF) return;
+    const nb = neighbors();
+    const base = S.baseline;
+    const runs = nb.map((rec) => {
+      const h = household(rec);
+      const a = E.analyze(h, STATES, base, "obbba");
+      return { w: rec.w, h, a, save: a.res[base].total - a.res.obbba.total };
+    }).sort((x, y) => x.save - y.save);
+    const med = wQuantile(runs, 0.5), p10 = wQuantile(runs, 0.1), p90 = wQuantile(runs, 0.9);
+    const totW = runs.reduce((s, x) => s + x.w, 0);
+    const shareSave = runs.filter((x) => x.save > 0.5).reduce((s, x) => s + x.w, 0) / totW;
+    const shareCost = runs.filter((x) => x.save < -0.5).reduce((s, x) => s + x.w, 0) / totW;
+
+    renderHero(med, p10, p90, shareSave, shareCost);
+    renderDist(runs, med, totW);
+    renderBars(med);
+    renderDrivers(med);
+    renderReturn(med);
+    renderTypicals(runs);
+    renderPercentile(runs);
+    renderThanks(med);
+  }
+
+  const ordinal = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
+  function percentileOf(x, tbl) {
+    let lo = 0, hi = tbl.length - 1;
+    if (x < tbl[0][0]) return 0;
+    while (lo < hi) { const m = (lo + hi + 1) >> 1; if (tbl[m][0] <= x) lo = m; else hi = m - 1; }
+    return tbl[lo][1];
+  }
+  function renderPercentile(runs) {
+    const W = runs.reduce((t, r) => t + r.w, 0);
+    const byTotal = runs.slice().sort((a, b) => a.h.total - b.h.total);
+    const tot = wQuantile(byTotal, 0.5).h.total;
+    const main = primary();
+    const othMed = wQuantile(runs.slice().sort((a, b) => (a.h.total - main) - (b.h.total - main)), 0.5).h.total - main;
+    const othAvg = runs.reduce((t, r) => t + r.w * (r.h.total - main), 0) / W;
+    const any = runs.filter((r) => r.h.total - main > 500).reduce((t, r) => t + r.w, 0) / W;
+    $("othTyp").textContent = `typical ${fmt(othMed)} · average ${fmt(othAvg)}`;
+    const custom = MODE_KEYS[S.mode].some((k) => S.ov[k] != null);
+    $("othNote").textContent = custom
+      ? "Includes the amounts you entered."
+      : `From the 2025 Survey of Consumer Finances. ${Math.round(any * 100)}% of households with similar ${S.mode === "work" ? "pay" : "retirement income"} have more than $500 beyond it. A few have a lot, mostly business income or capital gains, which pulls the average up. The results use each household's actual amount.`;
+    $("totVal").textContent = fmt(tot);
+    const p = (tbl) => Math.min(99, Math.max(1, Math.round(percentileOf(tot, tbl) * 100)));
+    const g = ageGroup(S.age);
+    $("pctHint").innerHTML = `About the <b>${ordinal(p(PCT.all))} percentile</b> of all U.S. households, and the <b>${ordinal(p(PCT[g[2]]))}</b> among households headed by someone ${g[2]}.`;
+  }
+
+  function renderThanks(med) {
+    const saves = med.save > 0.5;
+    $("thanks").hidden = !saves;
+    if (saves) $("thanksText").textContent = `A typical household like yours pays ${fmt(med.save)} less in 2026 than ${BASELINE[S.baseline].short}.`;
+  }
+
+  function renderHero(med, p10, p90, shareSave, shareCost) {
+    const v = med.save, big = $("heroBig");
+    big.className = "big " + (v > 0.5 ? "save" : v < -0.5 ? "cost" : "");
+    big.textContent = Math.abs(v) < 0.5 ? "$0" : (v > 0 ? "" : "+") + fmt(Math.abs(v));
+    const bl = BASELINE[S.baseline].short;
+    let txt;
+    if (v > 0.5) txt = `less federal income tax in 2026 than ${bl}, for a typical household like yours.`;
+    else if (v < -0.5) txt = `more federal income tax in 2026 than ${bl}, for a typical household like yours.`;
+    else txt = `difference in 2026 federal income tax compared with ${bl}, for a typical household like yours.`;
+    $("heroText").className = "";
+    $("heroText").textContent = txt;
+    const pct = (x) => Math.round(x * 100) + "%";
+    const same = Math.abs(p90.save - p10.save) < 50;
+    const chips = [];
+    chips.push(same ? `Nearly all similar households: <b>${fmtSigned(med.save)}</b>`
+      : `Middle 80%: <b>${fmtSigned(p10.save)}</b> to <b>${fmtSigned(p90.save)}</b>`);
+    chips.push(`Pay less: <b>${pct(shareSave)}</b>`);
+    if (shareCost > 0.005) chips.push(`Pay more: <b>${pct(shareCost)}</b>`);
+    const eff = med.a.res.obbba.total / Math.max(1, med.h.total);
+    chips.push(`Effective rate under OBBBA: <b>${(eff * 100).toFixed(1)}%</b>`);
+    $("chips").innerHTML = chips.map((c) => `<span class="chip">${c}</span>`).join("");
+  }
+  const fmtSigned = (x) => Math.abs(x) < 0.5 ? "$0" : (x > 0 ? "saves " : "costs ") + fmt(Math.abs(x));
+
+  function niceStep(range, target) {
+    const raw = range / target, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const n = raw / mag;
+    return (n < 1.5 ? 1 : n < 3.5 ? 2.5 : n < 7.5 ? 5 : 10) * mag;
+  }
+
+  function renderDist(runs, med, totW) {
+    const el = $("dist");
+    // Center the window on the typical household; trim the extremes.
+    const hs = Math.max(med.save - wQuantile(runs, 0.05).save, wQuantile(runs, 0.95).save - med.save);
+    const span = 2 * hs;
+    const W = Math.max(300, Math.round(el.clientWidth || 640)), H = 236, padL = 8, padR = 8, padT = 26, padB = 44;
+    let bins = [], width, outside = 0;
+    if (span < 50) {
+      width = 50; bins = [{ a: med.save - 25, b: med.save + 25, w: totW, n: runs.length }];
+    } else {
+      width = niceStep(span, 21);
+      const n = Math.ceil(hs / width - 0.5);
+      const start = med.save - width / 2 - n * width, end = med.save + width / 2 + n * width;
+      for (let i = 0; i < 2 * n + 1; i++) bins.push({ a: start + i * width, b: start + (i + 1) * width, w: 0, n: 0 });
+      for (const r of runs) {
+        if (r.save < start || r.save >= end) { outside += r.w; continue; }
+        const i = Math.min(bins.length - 1, Math.floor((r.save - start) / width));
+        bins[i].w += r.w; bins[i].n++;
+      }
+    }
+    const x0 = bins[0].a, x1 = bins[bins.length - 1].b;
+    const xs = (v) => padL + ((v - x0) / (x1 - x0)) * (W - padL - padR);
+    // Smoothed distribution: weighted Gaussian kernel density, scaled to the
+    // same units as the bars (household weight per bin).
+    let curve = [];
+    if (span >= 50) {
+      const mean = runs.reduce((t, r) => t + r.w * r.save, 0) / totW;
+      const sd = Math.sqrt(runs.reduce((t, r) => t + r.w * (r.save - mean) ** 2, 0) / totW);
+      // Silverman's rule with the IQR guard, so a few extreme households don't flatten the curve.
+      const iqr = wQuantile(runs, 0.75).save - wQuantile(runs, 0.25).save;
+      const spread = Math.min(sd, iqr / 1.34) || sd;
+      const bw = Math.max(0.9 * spread * Math.pow(runs.length, -0.2), width * 0.6);
+      const c = width / (bw * Math.sqrt(2 * Math.PI));
+      for (let i = 0; i <= 120; i++) {
+        const x = x0 + ((x1 - x0) * i) / 120;
+        const y = runs.reduce((t, r) => t + r.w * Math.exp(-0.5 * ((x - r.save) / bw) ** 2), 0) * c;
+        curve.push([x, y]);
+      }
+    }
+    const maxW = Math.max(...bins.map((b) => b.w), ...curve.map((p) => p[1]));
+    const ys = (w) => H - padB - (w / maxW) * (H - padT - padB);
+    const gap = bins.length > 1 ? 2 : 0;
+    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Distribution of tax change across similar households, median ${fmtSigned(med.save)}">`;
+    // baseline
+    svg += `<line x1="${padL}" x2="${W - padR}" y1="${H - padB}" y2="${H - padB}" stroke="var(--rule)" />`;
+    bins.forEach((b, i) => {
+      const mid = (b.a + b.b) / 2;
+      const color = b.a < 0 && b.b > 0 && span >= 50 ? "var(--base)" : mid > 0 ? "var(--save)" : "var(--cost)";
+      const x = xs(b.a) + gap / 2, w = Math.max(1, xs(b.b) - xs(b.a) - gap), y = ys(b.w), h = H - padB - y;
+      if (b.w > 0) svg += `<path d="M${x},${H - padB} V${y + Math.min(4, h)} q0,-${Math.min(4, h)} ${Math.min(4, w / 2)},-${Math.min(4, h)} H${x + w - Math.min(4, w / 2)} q${Math.min(4, w / 2)},0 ${Math.min(4, w / 2)},${Math.min(4, h)} V${H - padB} Z" fill="${color}" />`;
+      svg += `<rect class="hit" data-i="${i}" x="${xs(b.a)}" y="${padT}" width="${Math.max(1, xs(b.b) - xs(b.a))}" height="${H - padT - padB}" fill="transparent" />`;
+    });
+    if (curve.length) {
+      const d = curve.map((p, i) => `${i ? "L" : "M"}${xs(p[0]).toFixed(1)},${ys(p[1]).toFixed(1)}`).join(" ");
+      svg += `<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="5" stroke-linejoin="round" />`;
+      svg += `<path d="${d}" fill="none" stroke="var(--curve)" stroke-width="2" stroke-linejoin="round" />`;
+    }
+    // zero line
+    if (x0 < 0 && x1 > 0) svg += `<line x1="${xs(0)}" x2="${xs(0)}" y1="${padT - 6}" y2="${H - padB}" stroke="var(--ink-3)" stroke-dasharray="3 3" />`;
+    // median marker
+    const mx = xs(Math.min(Math.max(med.save, x0), x1));
+    svg += `<line x1="${mx}" x2="${mx}" y1="${padT - 4}" y2="${H - padB}" stroke="var(--ink)" stroke-width="2" />`;
+    const anchor = mx < 90 ? "start" : mx > W - 90 ? "end" : "middle";
+    svg += `<text class="lbl-strong" x="${mx}" y="${padT - 10}" text-anchor="${anchor}">typical: ${fmtSigned(med.save)}</text>`;
+    // ticks
+    const tStep = niceStep(x1 - x0, 5);
+    for (let t = Math.ceil(x0 / tStep) * tStep; t <= x1 + 1e-9; t += tStep) {
+      svg += `<line x1="${xs(t)}" x2="${xs(t)}" y1="${H - padB}" y2="${H - padB + 4}" stroke="var(--rule)" />`;
+      svg += `<text x="${xs(t)}" y="${H - padB + 17}" text-anchor="middle">${t === 0 ? "$0" : fmtK(Math.abs(t))}</text>`;
+    }
+    if (x0 < 0) svg += `<text x="${padL}" y="${H - 2}" text-anchor="start">← pays more</text>`;
+    if (x1 > 0) svg += `<text x="${W - padR}" y="${H - 2}" text-anchor="end">pays less →</text>`;
+    svg += `</svg><div class="tip" id="distTip"></div>`;
+    el.innerHTML = svg;
+    const outPct = Math.round((outside / totW) * 100);
+    $("distSub").textContent = `Change in 2026 tax for ${runs.length} similar survey households, centered on the typical one. Toward the right they pay less under the OBBBA; toward the left they pay more.` +
+      (outPct >= 1 ? ` ${outPct}% of households fall outside the range shown.` : "");
+    const tip = $("distTip");
+    el.querySelectorAll(".hit").forEach((r) => {
+      const b = bins[+r.dataset.i];
+      const show = () => {
+        const box = el.getBoundingClientRect(), rb = r.getBoundingClientRect();
+        tip.innerHTML = `${rangeLabel(b.a, b.b)}<br>${Math.round((b.w / totW) * 100)}% of similar households`;
+        tip.style.left = (rb.left - box.left + rb.width / 2) + "px";
+        tip.style.top = (ys(b.w) / H) * box.height + "px";
+        tip.classList.add("on");
+      };
+      r.addEventListener("mouseenter", show);
+      r.addEventListener("touchstart", show, { passive: true });
+      r.addEventListener("mouseleave", () => tip.classList.remove("on"));
+    });
+    $("distTable").innerHTML = `<thead><tr><th>Change in tax</th><th>Share of households</th></tr></thead><tbody>` +
+      bins.filter((b) => b.w > 0).map((b) => `<tr><td>${rangeLabel(b.a, b.b)}</td><td class="num">${Math.round((b.w / totW) * 100)}%</td></tr>`).join("") + `</tbody>`;
+  }
+  const rangeLabel = (a, b) => {
+    const f = (v) => v === 0 ? "$0" : (v > 0 ? "saves " : "costs ") + fmt(Math.abs(v));
+    return `${f(a)} to ${f(b)}`;
+  };
+
+  function renderBars(med) {
+    const r = med.a.res, base = S.baseline;
+    const rows = [
+      { label: BASELINE[base].label, v: r[base].total, color: "var(--base)" },
+      { label: "OBBBA (current law)", v: r.obbba.total, color: med.save >= 0 ? "var(--save)" : "var(--cost)" },
+    ];
+    // Zero sits at the left edge; it moves right only when a refund needs room.
+    const lo = Math.min(0, ...rows.map((x) => x.v)), hi = Math.max(0, ...rows.map((x) => x.v));
+    const range = Math.max(1, hi - lo);
+    const pos = (v) => ((v - lo) / range) * 100;
+    const refund = lo < 0;
+    $("bars").innerHTML = (refund ? `<div class="dir-head"><span>← Refund</span><span>You pay →</span></div>` : "") + rows.map((x) => {
+      const a = Math.min(pos(0), pos(x.v)), w = Math.abs(pos(x.v) - pos(0));
+      const val = Math.abs(x.v) < 0.5 ? "$0" : x.v < 0 ? `${fmt(-x.v)} refund` : `${fmt(x.v)} owed`;
+      return `<div class="bar-row">
+        <div class="top"><span>${x.label}</span><span class="num">${val}</span></div>
+        <div class="dir-track">${refund ? `<span class="axis" style="left:${pos(0)}%"></span>` : ""}<div class="dir-fill" style="left:${a}%;width:${w}%;background:${x.color}"></div></div>
+      </div>`;
+    }).join("") +
+      `<p class="hint">Federal income tax after credits.${refund ? " Bars left of the line are a net refund, which happens when refundable credits such as the EITC and Child Tax Credit are larger than the tax." : ""}</p>`;
+  }
+
+  function renderDrivers(med) {
+    const steps = med.a.steps.map((s) => ({ ...s, save: -s.delta }));
+    const shown = steps.filter((s) => Math.abs(s.save) >= 1);
+    const quiet = steps.filter((s) => Math.abs(s.save) < 1);
+    const max = Math.max(1, ...shown.map((s) => Math.abs(s.save)));
+    $("drivers").innerHTML = shown.length ? shown.map((s) => {
+      const w = (Math.abs(s.save) / max) * 50;
+      const left = s.save >= 0 ? 50 : 50 - w;
+      const color = s.save >= 0 ? "var(--save)" : "var(--cost)";
+      const amt = (s.save >= 0 ? "saves " : "costs ") + fmt(Math.abs(s.save));
+      return `<div class="driver"><span class="name">${s.label}</span><span class="amt">${amt}</span><div class="viz"><span class="axis"></span>
+        <span class="seg-bar" style="left:${left}%;width:${w}%;background:${color}"></span></div></div>`;
+    }).join("") : `<p class="hint">No provision changes this household's tax.</p>`;
+    $("driversNote").textContent = (quiet.length ? "No effect here: " + quiet.map((s) => s.label).join("; ") + ". " : "") +
+      "Bars to the right of center lower your tax; bars to the left raise it. The changes are applied in the order listed, so a change's size can depend on the ones before it.";
+  }
+
+  function renderReturn(med) {
+    const r = med.a.res, base = S.baseline, B = r[base], O = r.obbba;
+    const sch1a = (x) => (x.senior || 0) + (x.tips || 0) + (x.overtime || 0) + (x.car || 0) + (x.charityNI || 0);
+    const ded = (x) => `${x.useItemized ? "Itemized" : "Standard"}`;
+    const rows = [
+      ["Adjusted gross income", B.agi, O.agi],
+      [`Deduction <span class="form-ref">${ded(B)} → ${ded(O)}${B.useItemized || O.useItemized ? " (Schedule A)" : ""}</span>`, -B.deduction, -O.deduction],
+      ["Personal exemptions", -B.exemptions, -O.exemptions],
+      ["Business income (QBI) deduction", -B.qbi, -O.qbi],
+      [`New deductions <span class="form-ref">Schedule 1-A: seniors, tips, overtime, car loans, charity</span>`, -sch1a(B), -sch1a(O)],
+      ["Taxable income", B.ti, O.ti, true],
+      ["Income tax", B.regular, O.regular],
+      [`Alternative Minimum Tax <span class="form-ref">Form 6251</span>`, B.amt, O.amt],
+      ["Child Tax Credit", -B.ctc, -O.ctc],
+      ["Earned Income Tax Credit", -B.eitc, -O.eitc],
+      ["Net investment income tax", B.niit, O.niit],
+    ];
+    const h = med.h;
+    $("ret").innerHTML = `<thead><tr><th></th><th>${BASELINE[base].label}</th><th>OBBBA</th></tr></thead><tbody>` +
+      rows.filter((x) => x[3] || Math.abs(x[1]) >= 1 || Math.abs(x[2]) >= 1).map((x) =>
+        `<tr${x[3] ? ' style="font-weight:600"' : ""}><td>${x[0]}</td><td class="num">${fmt(x[1])}</td><td class="num">${fmt(x[2])}</td></tr>`).join("") +
+      `<tr class="total"><td>Federal income tax</td><td class="num">${fmt(B.total)}</td><td class="num">${fmt(O.total)}</td></tr></tbody>` +
+      `<tfoot><tr><td colspan="3" style="text-align:left;color:var(--ink-3);font-size:.78rem;border:0;padding-top:10px">This household: wages ${fmt(h.wages + h.tips + h.overtime)}` +
+      (h.bus ? `, business ${fmt(h.bus)}` : "") + (h.interest + h.taxex ? `, interest ${fmt(h.interest + h.taxex)}` : "") + (h.div ? `, dividends ${fmt(h.div)}` : "") +
+      (h.kg ? `, capital gains ${fmt(h.kg)}` : "") +
+      (h.ss ? `, Social Security ${fmt(h.ss)}` : "") + (h.pens ? `, pensions & IRA withdrawals ${fmt(h.pens)}` : "") +
+      (S.own ? `; home ${fmt(h.home)}, mortgage interest ${fmt(h.mortInt)}` : "") +
+      `; state & local taxes ${fmt(med.a.pre.salt)}.</td></tr></tfoot>`;
+  }
+
+  function renderTypicals(runs) {
+    const med = (f) => {
+      const xs = runs.map((r) => ({ w: r.w, v: f(r) })).sort((a, b) => a.v - b.v);
+      const tot = xs.reduce((s, x) => s + x.w, 0); let acc = 0;
+      for (const x of xs) { acc += x.w; if (acc >= tot / 2) return x.v; }
+      return 0;
+    };
+    const typTot = med((r) => r.h.total);
+    $("typ-charity").textContent = `Empty means 2% of income (about ${fmt(typTot * CHARITY_SHARE)}).`;
+    $("ov-charity").placeholder = Math.round(typTot * CHARITY_SHARE).toLocaleString("en-US");
+    const avg = (f) => runs.reduce((t, r) => t + r.w * f(r), 0) / runs.reduce((t, r) => t + r.w, 0);
+    const fill = (k, f) => {
+      const m = med(f), a = avg(f);
+      const inp = $("ov-" + k);
+      inp.placeholder = Math.round(m).toLocaleString("en-US");
+      inp.title = `Similar households: median ${fmt(m)}, average ${fmt(a)}`;
+      const typ = $("typ-" + k);
+      if (!typ) return;
+      if (typ.closest(".compact")) {
+        const share = runs.filter((r) => f(r) > 0.5).reduce((t, r) => t + r.w, 0) / runs.reduce((t, r) => t + r.w, 0);
+        typ.textContent = `${Math.round(share * 100)}% of similar households have any · average ${fmt(a)}`;
+      } else typ.textContent = `Empty means each similar survey household's own amount: median ${fmt(m)}, average ${fmt(a)}.`;
+    };
+    if (S.own) {
+      fill("mortInt", (r) => r.h.mortInt);
+      fill("propTax", (r) => r.a.pre.propTax);
+    }
+    fill("bus", (r) => r.h.bus);
+    fill("interest", (r) => r.h.interest);
+    fill("div", (r) => r.h.div);
+    fill("kg", (r) => r.h.kg);
+    fill("ss", (r) => r.h.ss);
+    fill("pens", (r) => r.h.pens);
+    fill("ssOf", (r) => r.h.ss);
+    fill("wage", (r) => r.h.wages + r.h.tips + r.h.overtime);
+  }
+
+  // ---------- Wire up ----------
+  function init() {
+    const sel = $("state");
+    Object.entries(STATES).sort((a, b) => a[1].name.localeCompare(b[1].name)).forEach(([k, v]) => {
+      const o = document.createElement("option"); o.value = k; o.textContent = v.name; sel.appendChild(o);
+    });
+    sel.value = S.state;
+    sel.addEventListener("change", () => { S.state = sel.value; schedule(); });
+    bindSeg("fs", "fs");
+    bindSeg("own", "own", Number);
+    bindSeg("baseline", "baseline");
+    $("mode").addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      S.mode = b.dataset.v; S.modeTouched = true; sync(); schedule();
+    });
+    $("incomeRange").addEventListener("input", (e) => { S.primary[S.mode] = fromSlider(+e.target.value); sync(); schedule(); });
+    $("incomeText").addEventListener("input", (e) => {
+      const v = parseMoney(e.target.value);
+      if (v != null && v >= 1000) { S.primary[S.mode] = Math.min(v, 2e7); $("incomeVal").textContent = fmt(v); $("incomeRange").value = toSlider(v); schedule(); }
+    });
+    $("incomeText").addEventListener("blur", sync);
+    $("kidsMinus").addEventListener("click", () => { S.kids = Math.max(0, S.kids - 1); sync(); schedule(); });
+    $("kidsPlus").addEventListener("click", () => { S.kids = Math.min(8, S.kids + 1); sync(); schedule(); });
+    $("age").addEventListener("input", (e) => {
+      S.age = +e.target.value;
+      if (!S.modeTouched) S.mode = S.age >= 65 ? "retire" : "work";
+      sync(); schedule();
+    });
+    $("spouse65").addEventListener("change", (e) => { S.spouse65 = e.target.checked; schedule(); });
+    document.querySelectorAll(".ovr").forEach((box) => {
+      const k = box.dataset.k, inp = box.querySelector("input");
+      inp.addEventListener("input", () => {
+        const v = parseMoney(inp.value);
+        if (inp.value.trim() === "" || v == null) delete S.ov[k]; else S.ov[k] = v;
+        schedule();
+      });
+    });
+    // Weighted income distribution of all U.S. households, for the percentile note.
+    const ci = SCF.fields.indexOf("inc"), cw = SCF.fields.indexOf("w"), ca = SCF.fields.indexOf("age");
+    const table = (rows) => {
+      rows = rows.map((r) => [r[ci], r[cw]]).sort((a, b) => a[0] - b[0]);
+      const totW = rows.reduce((t, r) => t + r[1], 0);
+      let acc = 0;
+      return rows.map(([inc, w]) => { acc += w; return [inc, acc / totW]; });
+    };
+    PCT = { all: table(SCF.rows) };
+    AGE_GROUPS.forEach((g) => { PCT[g[2]] = table(SCF.rows.filter((r) => r[ca] >= g[0] && r[ca] <= g[1])); });
+    let lastW = 0;
+    window.addEventListener("resize", () => { const w = $("dist").clientWidth; if (w !== lastW) { lastW = w; schedule(); } });
+    sync();
+    render();
+  }
+
+  Promise.all([fetch("data/scf.json").then((r) => r.json()), fetch("data/states.json").then((r) => r.json())])
+    .then(([scf, st]) => { SCF = scf; STATES = st; init(); })
+    .catch(() => { $("heroText").textContent = "The survey data didn't load. Reload the page to try again."; });
+})();
+</script>
